@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Build artefacts
+dist/
+build/
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Fusion's local crud (in case anyone develops with the addin folder symlinked)
+*.f3z
+*.bak

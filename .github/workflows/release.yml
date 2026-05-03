@@ -1,0 +1,57 @@
+name: Release
+
+# Fires on any tag push matching v*. The tag must be on main; CI doesn't
+# enforce that — see docs/RELEASE.md for the full process.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute version
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify version.json matches the tag
+        run: |
+          file_version=$(python -c "import json; print(json.load(open('version.json'))['version'])")
+          if [ "$file_version" != "${{ steps.ver.outputs.version }}" ]; then
+            echo "::error::version.json is $file_version but the tag is v${{ steps.ver.outputs.version }}"
+            exit 1
+          fi
+
+      - name: Verify Cutaway.manifest matches the tag
+        run: |
+          file_version=$(python -c "import json; print(json.load(open('Cutaway.manifest'))['version'])")
+          if [ "$file_version" != "${{ steps.ver.outputs.version }}" ]; then
+            echo "::error::Cutaway.manifest is $file_version but the tag is v${{ steps.ver.outputs.version }}"
+            exit 1
+          fi
+
+      - name: Build add-in zip
+        run: |
+          mkdir -p dist
+          zip -r "dist/cutaway-${{ steps.ver.outputs.version }}.zip" \
+            Cutaway.py \
+            Cutaway.manifest \
+            version.json \
+            src \
+            install \
+            docs/INSTALL.md \
+            README.md \
+            LICENSE
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
+          name: Cutaway v${{ steps.ver.outputs.version }}

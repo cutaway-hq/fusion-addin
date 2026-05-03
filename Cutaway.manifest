@@ -1,0 +1,13 @@
+{
+  "autodeskProduct": "Fusion",
+  "type": "addin",
+  "id": "acb1376a-492b-486a-8a36-6406c289131c",
+  "author": "Cutaway HQ",
+  "description": {
+    "": "Cutaway — import sections exported from cutawayhq.com as sketches placed on their real-world planes."
+  },
+  "version": "0.1.0",
+  "runOnStartup": true,
+  "supportedOS": "windows|mac",
+  "editEnabled": true
+}
