@@ -6,7 +6,27 @@ All notable changes to Cutaway. Format inspired by
 
 ## Unreleased
 
-_Nothing yet._
+### Added
+- `cutaway.json` manifest support — the importer now reads full section
+  metadata (origin, normal, u-axis, v-axis, kind) from a manifest at the
+  top of the zip. **Face, 3-point, derived, and tilted sections are now
+  importable** (previously skipped because filenames carry no orientation).
+- Three-point construction-plane builder for non-axis-aligned planes,
+  pinning both plane orientation and in-plane rotation so imported sketches
+  align with the section's original U/V frame.
+
+### Changed
+- Importer summary now reports which path it took: "imported N sections via
+  manifest" vs. "via filename (no cutaway.json)".
+
+### Fixed
+- Bulk-export filenames now include the placement suffix (was just
+  `Section_5_refined.dxf`, now `Section_5__YZ_X87.49_dx-2.9_dy38.25_mm_refined.dxf`).
+- Placement-suffix regex no longer requires the unit to be immediately
+  followed by `.dxf` — now accepts `_refined`, `_2`, etc. between unit and
+  extension.
+- `ImportManager.importToTarget()` now receives the root Component instead
+  of the Design (Fusion required a Component target).
 
 ## v0.1.0 — 2026-05-03
 

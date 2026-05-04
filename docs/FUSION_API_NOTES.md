@@ -19,12 +19,30 @@ Things that bit us during development. Read before changing
   `component.xZConstructionPlane`, `component.yZConstructionPlane`.
 - `setByOffset(base, ValueInput)` is the simplest path for axis-aligned
   offsets. Negative distance flips to the other side.
-- For tilted / non-axis-aligned planes you'd need
-  `setByThreePoints(p1, p2, p3)` or `setByPlane(planarEntity)`. We don't do
-  that in v1 — the web app's filename suffix doesn't carry enough info to
-  reconstruct an arbitrary orientation, and the *correct* fix is to write a
-  richer manifest into the zip (a JSON sibling per DXF) rather than parse
-  filenames.
+- For arbitrary planes (face / 3-point / derived / tilted sections):
+  - `setByThreePoints(p1, p2, p3)` **does NOT accept raw `Point3D`
+    arguments** despite what the type signature implies. It throws
+    `InternalValidationError : data_->execute(&obj, apiName) && obj`. It
+    requires *anchored* construction entities — `ConstructionPoint`,
+    `SketchPoint`, or `BRepVertex`. Painful but documented quirk.
+  - `setByPlane(planarEntity)` **does NOT accept a math `adsk.core.Plane`**
+    despite the type. It wants an existing planar *entity* (face / work
+    plane / sketch). Passing a math Plane raises
+    `RuntimeError: 3 : Environment is not supported`.
+  - **What we do**: create three `ConstructionPoint`s via
+    `ConstructionPointInput.setByPoint(Point3D)` (which DOES accept raw
+    points), then feed those to `setByThreePoints`. P1 = origin, P2 = origin+u,
+    P3 = origin+v — pins both the plane and its in-plane rotation so
+    imported DXF sketches land aligned with the section's U/V frame.
+  - **Inconsistent collection paths**: construction *points* must be
+    created via `component.features.constructionPointFeatures.add(input)`
+    — the seemingly-equivalent `component.constructionPoints.add(input)`
+    raises `RuntimeError: 3 : Environment is not supported`. Construction
+    *planes* accept either path. Don't ask why.
+  - The construction points are toggled `isLightBulbOn = False` to hide
+    them from the viewport; they remain in the timeline because the plane
+    is parametrically dependent on them. Three CPs per non-planar section
+    is the cost of correctness here.
 
 ## ImportManager
 

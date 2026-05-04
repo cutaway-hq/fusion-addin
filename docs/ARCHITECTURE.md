@@ -13,8 +13,9 @@ fusion-addin/
 ├── version.json            # source of truth for the running version
 ├── src/
 │   ├── ui.py               # registers the MODIFY-panel button(s)
-│   ├── importer.py         # zip → loop DXFs → import each onto its plane
-│   ├── plane_resolver.py   # filename → ConstructionPlane
+│   ├── importer.py         # zip → manifest or filename → plane → import
+│   ├── manifest.py         # cutaway.json reader (preferred metadata source)
+│   ├── plane_resolver.py   # builds construction planes (offset / 3-point)
 │   └── updater.py          # background GitHub Releases poll
 ├── install/                # per-platform install scripts
 └── docs/                   # this folder
@@ -33,12 +34,14 @@ fusion-addin/
 4. **User clicks Import** → file dialog → user picks a `.zip`.
 5. `importer.import_zip(path)`:
    - Extracts the zip into a temp dir.
-   - Walks every `.dxf`, calls `plane_resolver.parse_filename()` to extract
-     `{plane, depth_axis, depth, dx, dy, unit}`.
-   - For each parsed file: creates a `ConstructionPlane` offset from the
-     base XY/XZ/YZ at the right depth (in cm — Fusion's API unit), then uses
-     `ImportManager.createDXF2DImportOptions(file, plane)` +
-     `ImportManager.importToTarget(...)` to land the sketch.
+   - Tries `manifest.read_from_dir()`. If `cutaway.json` exists, take the
+     **manifest path**: walk every entry, build the right plane per kind
+     (axis-aligned planar → offset from base; everything else → three-point
+     construction), then `ImportManager.createDXF2DImportOptions(file, plane)`
+     + `ImportManager.importToTarget(opts, root_component)`.
+   - If no manifest, fall back to the **filename path**: `plane_resolver.parse_filename()`
+     on each `.dxf`. Only axis-aligned planar sections are recoverable that
+     way — face / 3-point / derived / tilted are reported as skipped.
    - Aggregates a summary message and shows it in a `messageBox`.
 6. **User clicks Update** (only if visible) → `webbrowser.open(release_url)`.
 7. **Fusion stops the add-in** → `stop()` → `ui.stop()` removes both buttons
@@ -52,8 +55,9 @@ fusion-addin/
 | `Cutaway.manifest` | Required by Fusion. The `id` UUID identifies this add-in across versions; **don't change it** between releases or Fusion treats it as a new add-in. |
 | `version.json` | Single source of truth for the running version. The release workflow can rewrite it in CI; the updater compares against the GitHub `tag_name`. |
 | `src/ui.py` | All Fusion-UI plumbing lives here. The handlers are kept in a module-level list so Fusion's GC doesn't drop them mid-callback (a known Fusion gotcha). |
-| `src/importer.py` | Pure import logic. Easy to read top-to-bottom. Per-file failures don't kill the batch; everything funnels into a single summary message. |
-| `src/plane_resolver.py` | Filename schema is the contract with the Cutaway web app. If the web app's suffix format changes, this is the only file that needs updating. |
+| `src/importer.py` | Pure import logic. Easy to read top-to-bottom. Per-file failures don't kill the batch; everything funnels into a single summary message. Two paths: manifest-based (preferred, supports every section kind) and filename-based (legacy fallback for axis-aligned planar only). |
+| `src/manifest.py` | `cutaway.json` reader. Validates schema version, returns a parsed dict or `None`. Never raises — falling back to filename parsing is the right behaviour on malformed manifests. |
+| `src/plane_resolver.py` | Builds Fusion `ConstructionPlane`s. Two construction methods: offset-from-base (axis-aligned planar) and three-point (anything else — pins both plane orientation AND in-plane rotation so the imported sketch lands aligned with the section's original U/V frame). |
 | `src/updater.py` | Network I/O is in a daemon thread on purpose — a slow/unreachable GitHub must never block Fusion startup or the importer. |
 
 ## What's intentionally NOT here
@@ -71,8 +75,12 @@ fusion-addin/
 
 ## Where to edit when…
 
-- **Web app changes the filename suffix** → `src/plane_resolver.py`
-  (`PLANAR_RE` and `PlanarInfo`).
+- **Web app changes the manifest schema** → bump `SUPPORTED_VERSIONS` in
+  `src/manifest.py`, update field handling in `src/importer.py`'s
+  `_build_plane_from_manifest`. The schema is documented in `manifest.py`'s
+  module docstring — keep it in sync with `cad-app/src/viewer/bulkSectionExport.ts`.
+- **Web app changes the filename suffix** (only matters for the legacy
+  fallback path now) → `src/plane_resolver.py` (`PLANAR_RE` and `PlanarInfo`).
 - **Need to change which Fusion panel hosts the button** → `src/ui.py`
   (`PANEL_ID` / `WORKSPACE_ID`).
 - **Need to add a new format (e.g. STL marketplace download)** → new module

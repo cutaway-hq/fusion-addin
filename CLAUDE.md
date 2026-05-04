@@ -38,32 +38,35 @@ add-in.
 
 ## The contract with the web app
 
-The web app's exporter writes filenames like:
+The zip carries a **`cutaway.json` manifest** at its top level. That's the
+authoritative source of geometry for every section — origin, normal,
+u-axis, v-axis, kind. Reading it is much more robust than parsing
+filenames, and it makes face / 3-point / derived / tilted sections
+importable (the filename alone can't carry orientation).
 
-```
-MySection__XY_Z12.34_dx0_dy0_mm.dxf
-```
+Schema is documented in `src/manifest.py`'s module docstring; the writer
+side lives in `cad-app/src/viewer/bulkSectionExport.ts`. Keep them in
+lockstep — bump `version` and the reader's `SUPPORTED_VERSIONS` together
+on breaking changes.
 
-Schema (planar sections only):
+### Filename suffix (legacy fallback)
+
+Older zips (or third-party DXFs) might not have a manifest. For those, the
+importer parses the placement suffix in each filename:
 
 ```
 <sketchName>__<Plane>_<DepthAxis><DepthValue>_dx<X>_dy<Y>_<unit>.dxf
                 ^XY|XZ|YZ ^X|Y|Z   signed   signed signed  mm|cm|m|in
 ```
 
-`<X>` and `<Y>` are the **local sketch X and Y offsets** the user would
-type into Fusion's "Insert DXF" dialog (we don't actually use them in the
-import path right now — Fusion's `ImportManager` puts the geometry at the
-DXF's own coordinates — but they're documented in the suffix for round-trip
-clarity).
+Only **axis-aligned planar** sections survive this path. Face / 3-point /
+derived / tilted sections export with the `__at_X<x>_Y<y>_Z<z>_<unit>`
+form which carries no orientation; they get reported as skipped if the
+manifest is missing.
 
-Face / 3-point / derived / tilted sections export as
-`__at_X<x>_Y<y>_Z<z>_<unit>` and the v1 importer **skips them** because we
-can't reconstruct the orientation from coordinates alone. They're reported
-in the post-import summary so users know what was dropped.
-
-If the web app ever changes the suffix format, `src/plane_resolver.py` is
-the only file that needs updating.
+The web app currently writes BOTH the manifest AND the placement suffix in
+filenames. Filenames stay human-readable; the manifest is what the importer
+actually trusts.
 
 ## Constraints to respect
 
