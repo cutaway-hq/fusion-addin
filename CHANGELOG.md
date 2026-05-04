@@ -11,13 +11,34 @@ All notable changes to Cutaway. Format inspired by
   metadata (origin, normal, u-axis, v-axis, kind) from a manifest at the
   top of the zip. **Face, 3-point, derived, and tilted sections are now
   importable** (previously skipped because filenames carry no orientation).
-- Three-point construction-plane builder for non-axis-aligned planes,
-  pinning both plane orientation and in-plane rotation so imported sketches
-  align with the section's original U/V frame.
+- **Tilted plane construction** via `setByAngle` with a shared hidden helper
+  sketch. The helper sketch is created lazily on the first tilted section
+  and reused across all tilted sections in one import — 1 sketch + 1 plane
+  per tilted section instead of 13 entities each. Works for any section
+  whose plane intersects XY (every plane that isn't parallel to it).
+- **Axis-aligned dispatch by normal vector**, not section kind. A face / 3-
+  point / derived section whose normal happens to be along ±X / ±Y / ±Z
+  now takes the cleaner `setByOffset` path and lands at the correct world
+  position with correct rotation — same as a planar tool section.
+- `install/dev-link.bat` — creates a junction from Fusion's AddIns folder
+  to the source repo so iterative dev doesn't need re-running install.bat.
+- `docs/COORDINATE_SYSTEMS.md` — captures the chain of coordinate
+  transformations between web app, manifest, DXF, and Fusion's sketch frame.
+  Read this before changing anything in the import pipeline.
 
 ### Changed
 - Importer summary now reports which path it took: "imported N sections via
   manifest" vs. "via filename (no cutaway.json)".
+- Per-step error reporting in the importer (plane construction vs. DXF
+  import) so failures point to the right Fusion API call instead of a
+  generic "InternalValidationError".
+- Tolerance for "is this normal axis-aligned?" bumped from `1e-6` to `1e-3`
+  in both the web app (`axisAlignedWorldFrame`, `tiltedWorldFrame`) and
+  the add-in (`_AXIS_TOL`). Tight tolerance was misclassifying 3-point
+  sections through coplanar points (whose normal carries floating-point
+  noise from the cross-product) as "tilted", routing them to the
+  setByAngle path with weird rotations. The three values must stay in
+  lockstep.
 
 ### Fixed
 - Bulk-export filenames now include the placement suffix (was just
@@ -27,6 +48,19 @@ All notable changes to Cutaway. Format inspired by
   extension.
 - `ImportManager.importToTarget()` now receives the root Component instead
   of the Design (Fusion required a Component target).
+- Helper sketch is hidden via `isVisible = False` (the property is
+  `isVisible` on Sketch; `isLightBulbOn` is for ConstructionPlane only and
+  silently throws when assigned to a Sketch).
+- `isComputeDeferred = True` on the helper sketch was preventing newly-added
+  sketch lines from rendering — removed.
+
+### Known limitations
+- The tilted-section path empirically matches Fusion's `setByAngle` sketch
+  convention (sketch X = line direction, etc.) on the version we tested. If
+  Fusion ever changes that convention, all genuinely tilted sections will
+  land mis-rotated within their plane. Fallback fix is documented in
+  `docs/COORDINATE_SYSTEMS.md` — a post-import sketch transform that walks
+  `sketchPoints` and moves each one to its intended world position.
 
 ## v0.1.0 — 2026-05-03
 
