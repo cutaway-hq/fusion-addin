@@ -129,8 +129,12 @@ actually trusts.
 
 ## Cutting a release
 
-See `docs/RELEASE.md`. TL;DR: bump version in two files + CHANGELOG, tag
-`vX.Y.Z`, push tag, CI builds and publishes.
+See `docs/RELEASE.md` (and the monorepo root's `DEPLOYMENT.md` §3 for the
+Davud-guided version incl. the git-auth gotcha). TL;DR: bump version in two
+files + CHANGELOG, tag `vX.Y.Z`, push tag, CI builds and publishes.
+Current shipped version: **v0.2.0** (2026-07-12; the public repo was
+recreated that day — the original May repo had been deleted). The download
+is linked from cutawayhq.com (hero + tutorial) and both web apps.
 
 ## Related projects
 
