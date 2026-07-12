@@ -29,7 +29,7 @@ position with the right orientation.
 
 The manifest is the **single source of truth** for plane reconstruction.
 Schema is documented in `src/manifest.py`'s docstring; the writer side is
-in `cad-app/src/viewer/bulkSectionExport.ts`. Per-section entry:
+in `slice-app/src/viewer/bulkSectionExport.ts`. Per-section entry:
 
 ```json
 {
@@ -67,17 +67,32 @@ geometry lands aligned without a post-import transform.
 ### AXIS_ALIGNED_WORLD_FRAME
 
 Triggers when the section's normal is along ±X / ±Y / ±Z (within
-tolerance — see "The 1e-3 lesson" below). For these:
+tolerance — see "The 1e-3 lesson" below). Per-plane DXF axes:
 
-- DXF X / Y axes = the two world axes that lie in the section's plane
-  (e.g., for normal=Z: DXF X = world X, DXF Y = world Y)
-- DXF origin = world origin projected onto the plane (e.g., for
-  normal=Z at depth=12: origin = (0, 0, 12))
+| Section plane (normal) | DXF X      | DXF Y       | DXF origin                |
+|------------------------|------------|-------------|---------------------------|
+| XY (normal ±Z)         | world +X   | world +Y    | (0, 0, depth_z)           |
+| XZ (normal ±Y)         | world +X   | world **−Z**| (0, depth_y, 0)           |
+| YZ (normal ±X)         | world +Y   | world +Z    | (depth_x, 0, 0)           |
 
-This makes DXF coords identical to world coords *within the plane*.
-When Fusion creates the sketch via `setByOffset(base_plane, depth)`, its
-default sketch axes line up with the world axes too — the geometry lands
-at its correct world position with no further work.
+The XY and YZ rows are intuitive — DXF coords match world coords within
+the plane. **The XZ row has a sign flip on V** because Fusion's
+`xZConstructionPlane` sketches with sketch Y = world **−Z** (right-hand
+rule: the plane normal is +Y and X × −Z = +Y, so sketch Y must point
+along world −Z to keep things right-handed). Without this flip, every
+axis-aligned XZ-parallel section lands mirrored across Z=0 in Fusion —
+contours appear "below" the geometry by 2× their world Z. The flip
+cancels Fusion's sign so the contour ends up at its true world Z; **no
+visible mirror in world space**.
+
+(YZ is left intuitive on the assumption Fusion's `yZConstructionPlane`
+follows sketch X = world Y, sketch Y = world Z — typical CAD
+convention. If a YZ section ever lands mirrored across the Y axis, flip
+its V the same way.)
+
+When Fusion creates the sketch via `setByOffset(base_plane, depth)`,
+its default sketch axes line up with the table above — the geometry
+lands at its correct world position with no further work.
 
 The override fires regardless of section kind (planar tool, face,
 3-point, derived), so a face section on a top face becomes equivalent
@@ -145,7 +160,7 @@ unpredictable angle.
 Tolerance of **1e-3** absorbs the noise. The cost is treating sections
 with up to ~0.06° of true tilt as axis-aligned — well below anything
 intentional in CAD work. Detection thresholds:
-- `cad-app/src/viewer/sectionFrame.ts` (axisAlignedWorldFrame, tiltedWorldFrame)
+- `slice-app/src/viewer/sectionFrame.ts` (axisAlignedWorldFrame, tiltedWorldFrame)
 - `fusion-addin/src/plane_resolver.py` (`_AXIS_TOL`)
 
 These three values must stay in lockstep.
@@ -184,11 +199,11 @@ implement it, also remove `tiltedWorldFrame` on the web app side
 
 | What | File |
 |------|------|
-| Manifest schema (writer) | `cad-app/src/viewer/bulkSectionExport.ts` |
+| Manifest schema (writer) | `slice-app/src/viewer/bulkSectionExport.ts` |
 | Manifest schema (reader) | `fusion-addin/src/manifest.py` |
-| Section frame computation (web app) | `cad-app/src/viewer/sectionFrame.ts` |
-| Axis-aligned export override | `cad-app/src/viewer/sectionFrame.ts` (`axisAlignedWorldFrame`) |
-| Tilted export override | `cad-app/src/viewer/sectionFrame.ts` (`tiltedWorldFrame`) |
+| Section frame computation (web app) | `slice-app/src/viewer/sectionFrame.ts` |
+| Axis-aligned export override | `slice-app/src/viewer/sectionFrame.ts` (`axisAlignedWorldFrame`) |
+| Tilted export override | `slice-app/src/viewer/sectionFrame.ts` (`tiltedWorldFrame`) |
 | Axis-aligned plane construction | `fusion-addin/src/plane_resolver.py` (`create_offset_plane`) |
 | Tilted plane construction | `fusion-addin/src/plane_resolver.py` (`create_tilted_plane`) |
 | Helper-sketch lifecycle | `fusion-addin/src/plane_resolver.py` (`make_helper_sketch_provider`) |

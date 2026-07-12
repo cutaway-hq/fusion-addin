@@ -15,7 +15,7 @@ Schema (version 1):
         {
           "file": "<filename inside the zip>",
           "name": "<section name>",
-          "kind": "plane" | "face" | "derived",
+          "kind": "plane" | "face" | "derived" | "imported",
           "origin": [x, y, z],
           "normal": [nx, ny, nz],
           "uAxis": [ux, uy, uz],
@@ -27,6 +27,12 @@ Schema (version 1):
         ...
       ]
     }
+
+Writers: ``exporter.name`` is ``cutaway-web`` for slice-app zips and
+``cutaway-fitter`` for fitting-app re-exports. The fitter preserves slice-app
+entries verbatim; sections it loaded as standalone DXFs get a minimal entry
+(``kind: "imported"``, no placement fields) — those are skipped with a
+message, since a bare DXF carries no 3D placement.
 
 When bumping the schema version, keep this reader backward-compatible: old
 add-in versions will still receive newer zips and shouldn't crash on extra

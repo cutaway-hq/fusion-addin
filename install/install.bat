@@ -15,7 +15,14 @@ set "SOURCE=%~dp0.."
 xcopy /E /I /Y /Q "%SOURCE%\Cutaway.py" "%TARGET%\" >nul
 xcopy /E /I /Y /Q "%SOURCE%\Cutaway.manifest" "%TARGET%\" >nul
 xcopy /E /I /Y /Q "%SOURCE%\version.json" "%TARGET%\" >nul
+
+REM Clear src/resources before copying (matches install.sh) so files that a
+REM newer version renamed or deleted don't linger from the previous install.
+if exist "%TARGET%\src" rmdir /S /Q "%TARGET%\src"
+if exist "%TARGET%\resources" rmdir /S /Q "%TARGET%\resources"
+
 xcopy /E /I /Y /Q "%SOURCE%\src" "%TARGET%\src\" >nul
+xcopy /E /I /Y /Q "%SOURCE%\resources" "%TARGET%\resources\" >nul
 
 echo.
 echo Cutaway installed to:

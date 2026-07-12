@@ -12,11 +12,15 @@ fusion-addin/
 ├── Cutaway.manifest        # add-in metadata (name, author, id, version)
 ├── version.json            # source of truth for the running version
 ├── src/
-│   ├── ui.py               # registers the MODIFY-panel button(s)
+│   ├── ui.py               # registers the MODIFY-panel button + HTML Palette
 │   ├── importer.py         # zip → manifest or filename → plane → import
 │   ├── manifest.py         # cutaway.json reader (preferred metadata source)
-│   ├── plane_resolver.py   # builds construction planes (offset / 3-point)
+│   ├── plane_resolver.py   # builds construction planes (offset / setByAngle)
 │   └── updater.py          # background GitHub Releases poll
+├── resources/
+│   ├── cutaway/            # toolbar button PNG icons (16/32/64)
+│   ├── palette/            # HTML/CSS/JS for the Cutaway Palette
+│   └── generate_icons.py   # regenerates the PNGs from pure stdlib
 ├── install/                # per-platform install scripts
 └── docs/                   # this folder
 ```
@@ -26,26 +30,38 @@ fusion-addin/
 1. **Fusion starts** (with the add-in enabled in *Run on Startup*).
 2. Fusion calls `Cutaway.py:run()`, which delegates to `ui.start()`.
 3. `ui.start()`:
-   - Registers the `Cutaway: Import Sections` button in the MODIFY panel.
+   - Registers the `Cutaway` toolbar button in the MODIFY panel, with the
+     icon from `resources/cutaway/`.
+   - Registers (but does not show) the Cutaway HTML Palette, sourcing
+     `resources/palette/index.html`.
+   - Wires the toolbar button to toggle the Palette open/closed.
+   - Registers an HTMLEvent handler on the Palette so its JS can call into
+     Python (e.g., the "Import sections" button posts an `import` action).
    - Calls `updater.check_in_background()` — a daemon thread hits the GitHub
-     Releases API and stashes a "newer version exists" record if it finds one.
-   - Looks up `updater.get_pending_update()`. If non-null, also registers a
-     second button: `Cutaway: Update to vX.Y.Z`.
-4. **User clicks Import** → file dialog → user picks a `.zip`.
-5. `importer.import_zip(path)`:
+     Releases API and, if a newer version exists, stashes a record in module
+     state and in a small cache file (`.update_check.json`, next to
+     `version.json`) so the result survives the Fusion restart.
+   - Looks up `updater.get_pending_update()` — on a fresh launch this reads
+     the cache written by a *previous* session's check (this session's probe
+     hasn't finished yet). If non-null, also registers a second toolbar
+     button: `Cutaway: Update to vX.Y.Z`.
+4. **User clicks the Cutaway button** → Palette opens (or closes if it was already open).
+5. **User clicks "Import sections" inside the Palette** → JS posts `import`
+   to Python → Python opens the file dialog → user picks a `.zip`.
+6. `importer.import_zip(path)`:
    - Extracts the zip into a temp dir.
    - Tries `manifest.read_from_dir()`. If `cutaway.json` exists, take the
-     **manifest path**: walk every entry, build the right plane per kind
-     (axis-aligned planar → offset from base; everything else → three-point
-     construction), then `ImportManager.createDXF2DImportOptions(file, plane)`
+     **manifest path**: walk every entry, build the right plane per normal
+     (axis-aligned → offset from base; tilted → `setByAngle` around a helper
+     sketch line), then `ImportManager.createDXF2DImportOptions(file, plane)`
      + `ImportManager.importToTarget(opts, root_component)`.
    - If no manifest, fall back to the **filename path**: `plane_resolver.parse_filename()`
      on each `.dxf`. Only axis-aligned planar sections are recoverable that
      way — face / 3-point / derived / tilted are reported as skipped.
    - Aggregates a summary message and shows it in a `messageBox`.
-6. **User clicks Update** (only if visible) → `webbrowser.open(release_url)`.
-7. **Fusion stops the add-in** → `stop()` → `ui.stop()` removes both buttons
-   and clears the handlers list.
+7. **User clicks Update** (only if visible) → `webbrowser.open(release_url)`.
+8. **Fusion stops the add-in** → `stop()` → `ui.stop()` removes the Palette,
+   removes both toolbar buttons, and clears the handlers list.
 
 ## Why each piece exists
 
@@ -53,12 +69,15 @@ fusion-addin/
 |------|--------|
 | `Cutaway.py` | Fusion expects a top-level module with `run()` / `stop()`. Keep it thin so the entry surface is obvious. |
 | `Cutaway.manifest` | Required by Fusion. The `id` UUID identifies this add-in across versions; **don't change it** between releases or Fusion treats it as a new add-in. |
-| `version.json` | Single source of truth for the running version. The release workflow can rewrite it in CI; the updater compares against the GitHub `tag_name`. |
+| `version.json` | Single source of truth for the running version. The release workflow fails the build if it diverges from the tag; the updater compares it against the GitHub `tag_name`. |
 | `src/ui.py` | All Fusion-UI plumbing lives here. The handlers are kept in a module-level list so Fusion's GC doesn't drop them mid-callback (a known Fusion gotcha). |
 | `src/importer.py` | Pure import logic. Easy to read top-to-bottom. Per-file failures don't kill the batch; everything funnels into a single summary message. Two paths: manifest-based (preferred, supports every section kind) and filename-based (legacy fallback for axis-aligned planar only). |
 | `src/manifest.py` | `cutaway.json` reader. Validates schema version, returns a parsed dict or `None`. Never raises — falling back to filename parsing is the right behaviour on malformed manifests. |
-| `src/plane_resolver.py` | Builds Fusion `ConstructionPlane`s. Two construction methods: offset-from-base (axis-aligned planar) and three-point (anything else — pins both plane orientation AND in-plane rotation so the imported sketch lands aligned with the section's original U/V frame). |
+| `src/plane_resolver.py` | Builds Fusion `ConstructionPlane`s. Two construction methods: offset-from-base (axis-aligned normals) and `setByAngle` around a line in a shared hidden helper sketch (tilted normals). The web app pre-aligns each DXF's coordinates to the sketch frame Fusion picks for these constructions — see `docs/COORDINATE_SYSTEMS.md`. |
 | `src/updater.py` | Network I/O is in a daemon thread on purpose — a slow/unreachable GitHub must never block Fusion startup or the importer. |
+| `resources/cutaway/` | PNG icons (16/32/64) shown next to the toolbar button. Fusion finds them by convention: it looks in the `resourceFolder` path for files named `16x16.png`, `32x32.png`, `64x64.png`. |
+| `resources/palette/` | HTML/CSS/JS for the Cutaway Palette. Inline single-file `index.html` for simplicity — no build step needed. The JS calls `adsk.fusionSendData(action, jsonStr)` to message Python; Python handles those actions in an `HTMLEventHandler`. |
+| `resources/generate_icons.py` | Regenerates the PNGs from scratch using pure stdlib (`struct` + `zlib`). Lets a maintainer change the icon style without needing Pillow or graphics tooling. |
 
 ## What's intentionally NOT here
 
@@ -78,7 +97,7 @@ fusion-addin/
 - **Web app changes the manifest schema** → bump `SUPPORTED_VERSIONS` in
   `src/manifest.py`, update field handling in `src/importer.py`'s
   `_build_plane_from_manifest`. The schema is documented in `manifest.py`'s
-  module docstring — keep it in sync with `cad-app/src/viewer/bulkSectionExport.ts`.
+  module docstring — keep it in sync with `slice-app/src/viewer/bulkSectionExport.ts`.
 - **Web app changes the filename suffix** (only matters for the legacy
   fallback path now) → `src/plane_resolver.py` (`PLANAR_RE` and `PlanarInfo`).
 - **Need to change which Fusion panel hosts the button** → `src/ui.py`

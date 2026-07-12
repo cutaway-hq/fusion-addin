@@ -45,7 +45,7 @@ filenames, and it makes face / 3-point / derived / tilted sections
 importable (the filename alone can't carry orientation).
 
 Schema is documented in `src/manifest.py`'s module docstring; the writer
-side lives in `cad-app/src/viewer/bulkSectionExport.ts`. Keep them in
+side lives in `slice-app/src/viewer/bulkSectionExport.ts`. Keep them in
 lockstep — bump `version` and the reader's `SUPPORTED_VERSIONS` together
 on breaking changes.
 
@@ -87,11 +87,24 @@ actually trusts.
 
 | Decision | Why |
 |----------|-----|
-| Update check is in-process, fired once at `start()`, results surface only on next Fusion restart | Predictable; avoids surprise prompts mid-session |
+| Update check is in-process, fired once at `start()`; the result is cached to `.update_check.json` next to `version.json` and surfaces (as the Update button) on the next Fusion restart | Predictable; avoids surprise prompts mid-session. The file cache is load-bearing: module memory dies with Fusion, and `start()` reads the pending state before this session's probe can finish — without the cache the button could never appear |
 | Update affordance opens GitHub release page in a browser; no auto-download | Keeps install path the same as a fresh install (one path to debug) |
 | Per-file failures don't kill the batch; failures are listed in the summary | A bad DXF shouldn't waste the rest of a 50-section import |
 | Each section is a separate sketch, no auto-grouping | Fusion's API doesn't merge sketches; matches user mental model |
 | File-picker only, no "watch this folder" mode | Simplest possible v1, matches the web app's "Export zip" UX |
+| Toolbar button opens a Cutaway-branded **HTML Palette**, not the file picker directly | Branded surface for the import flow + space to grow (e.g., a future "Publish to Cutaway" marketplace button lives here too). Costs the user one extra click; pays for itself by giving Cutaway its own identity in Fusion and a place to land future features without re-architecting the UI each time. |
+
+## Migration history
+
+### Toolbar button → HTML Palette (post-v0.1.0)
+
+**Before:** clicking the `Cutaway: Import Sections` toolbar button opened Fusion's native file dialog directly. Zero extra clicks, but also zero branding and nowhere to host a second feature without adding another toolbar button.
+
+**After:** clicking the toolbar button toggles a Cutaway-branded HTML Palette. The Palette hosts a "Pick a section zip" button which opens the same file dialog and runs the same `importer.import_zip()` code. Functionally identical for the user; visually a clear "you are now in Cutaway" surface.
+
+**Why we changed it:** the user is planning to add a "Publish to Cutaway" button (export the active solid as STL and upload to a marketplace). A Palette is the right surface for that — it scales to N features without cluttering Fusion's toolbar. The marketplace would also benefit from being visually a part of Cutaway (logo, brand colors) so users understand they're publishing to *us*, not a generic export.
+
+**How to revert if needed:** the toolbar-button-opens-file-picker code lived in `src/ui.py` as `_ImportCommandCreated.notify()` opening `ui.createFileDialog()` directly. To revert, replace the Palette wiring in `start()` with the original single-handler `_register_button(...)` for the import command, and put the file dialog code back inline in the command-created handler. The importer itself didn't change; only the surface that triggers it.
 
 ## What the user has explicitly said NOT to do
 
@@ -121,9 +134,9 @@ See `docs/RELEASE.md`. TL;DR: bump version in two files + CHANGELOG, tag
 
 ## Related projects
 
-- **`../cad-app/`** — the Vite + React + Three.js web app at
+- **`../slice-app/`** — the Vite + React + Three.js web app at
   cutawayhq.com that produces the zips this add-in consumes. The exporter
   responsible for the filename schema lives in
-  `cad-app/src/viewer/SectionViewer.tsx` (`placementSuffix`) and
-  `cad-app/src/viewer/bulkSectionExport.ts`.
+  `slice-app/src/viewer/SectionViewer.tsx` (`placementSuffix`) and
+  `slice-app/src/viewer/bulkSectionExport.ts`.
 - **GitHub org:** [cutaway-hq](https://github.com/cutaway-hq).

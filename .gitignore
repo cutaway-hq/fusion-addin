@@ -24,3 +24,7 @@ Thumbs.db
 # Fusion's local crud (in case anyone develops with the addin folder symlinked)
 *.f3z
 *.bak
+
+# Updater's cached check result (written at runtime next to version.json;
+# shows up in the repo when developing via install/dev-link.bat)
+.update_check.json

@@ -41,17 +41,18 @@ After running the installer:
 4. Find **Cutaway** in the *My Add-Ins* list.
 5. Click **Run**. Tick **Run on Startup** so it loads automatically next time.
 
-You should now see **Cutaway: Import Sections** in the **MODIFY** panel of
-the DESIGN workspace.
+You should now see a **Cutaway** button in the **MODIFY** panel of the
+DESIGN workspace.
 
 ## Use
 
 1. Export sections from [cutawayhq.com](https://cutawayhq.com) using the
    **Refined 2D DXF (zipped)** option in the Sections panel.
-2. In Fusion, click **MODIFY → Cutaway: Import Sections**.
-3. Pick the zip you just downloaded.
+2. In Fusion, click **MODIFY → Cutaway**. The Cutaway panel opens.
+3. Click **Import sections** in the panel and pick the zip you just
+   downloaded.
 4. Each `.dxf` becomes a sketch on its own construction plane at the
-   correct depth.
+   correct position and orientation.
 
 ## Update
 
@@ -88,9 +89,14 @@ list.
 - **"no .dxf files found in the zip"** — the zip might be the `.svg`
   export (we hide that in the UI but old exports may still exist). Use the
   Refined 2D DXF export.
-- **Some sections show as "skipped — no placement suffix"** — those are
-  face / 3-point / derived / tilted sections, which the v1 importer doesn't
-  handle yet (we couldn't reconstruct an exact plane from the suffix
-  alone). Re-export the sections as axis-aligned planes.
+- **Some sections show as "skipped — no placement suffix and no
+  cutaway.json"** — the zip predates the `cutaway.json` manifest, so only
+  axis-aligned planar sections can be placed (their position is parsed
+  from the filename). Re-export the zip from the current web app — with a
+  manifest, every section kind (face / 3-point / derived / tilted)
+  imports.
+- **A section shows as "skipped — no 3D placement in manifest"** — that
+  DXF was loaded into the fitting app standalone (not cut from a mesh),
+  so no section plane exists to rebuild in Fusion.
 - **Nothing happens when I click the button** — check Fusion's TEXT
   COMMANDS pane (View → Show Text Commands) for any error output.

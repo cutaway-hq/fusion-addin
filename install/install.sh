@@ -15,6 +15,8 @@ cp "$SOURCE/Cutaway.manifest" "$TARGET/"
 cp "$SOURCE/version.json"     "$TARGET/"
 rm -rf "$TARGET/src"
 cp -R "$SOURCE/src"           "$TARGET/src"
+rm -rf "$TARGET/resources"
+cp -R "$SOURCE/resources"     "$TARGET/resources"
 
 cat <<MSG
 

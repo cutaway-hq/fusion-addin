@@ -240,16 +240,17 @@ def planar_info_from_manifest(section: dict, unit: str) -> Optional[PlanarInfo]:
     face / 3-point / derived sections that happen to have an axis-aligned
     normal (very common: any section on a flat top/bottom/side face).
     Returns None for genuinely off-axis normals (caller should fall back
-    to ``create_arbitrary_plane``).
-    """
-    # Reject sections with explicit tilt — those have non-cardinal normals
-    # even when kind == 'plane'.
-    if section.get('kind') == 'plane' and (
-        float(section.get('tiltU', 0) or 0) != 0
-        or float(section.get('tiltV', 0) or 0) != 0
-    ):
-        return None
+    to ``create_tilted_plane``).
 
+    Axis-alignment is judged from the NORMAL alone — deliberately not from
+    the manifest's tiltU/tiltV hints. A real tilt already shows up in the
+    normal, and the web app makes its own axis-aligned-vs-tilted export
+    decision by the same normal + tolerance (axisAlignedWorldFrame). An
+    explicit tilt-field check would only diverge in the sub-tolerance window
+    (tilt < ~0.06°), where it wrongly rejected sections here that the web
+    app had exported as axis-aligned — both paths then refused them and the
+    section was skipped entirely.
+    """
     plane = axis_aligned_plane(section.get('normal'))
     if plane is None:
         return None

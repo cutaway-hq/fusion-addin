@@ -18,6 +18,7 @@ single summary message at the end.
 """
 
 import os
+import shutil
 import tempfile
 import traceback
 import zipfile
@@ -41,7 +42,12 @@ def import_zip(zip_path: str) -> None:
     root = design.rootComponent
     import_mgr = app.importManager
 
-    with tempfile.TemporaryDirectory(prefix='cutaway_') as tmpdir:
+    # mkdtemp + best-effort rmtree instead of TemporaryDirectory: on Windows a
+    # transient handle on an extracted DXF (AV scanner etc.) can make cleanup
+    # raise, and a cleanup failure AFTER a successful import must not replace
+    # the summary dialog with a raw traceback.
+    tmpdir = tempfile.mkdtemp(prefix='cutaway_')
+    try:
         try:
             with zipfile.ZipFile(zip_path) as zf:
                 zf.extractall(tmpdir)
@@ -60,6 +66,8 @@ def import_zip(zip_path: str) -> None:
                 tmpdir, root, import_mgr, design,
             )
             method = 'filename (no cutaway.json)'
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
     summary = f'Cutaway: imported {imported} section{"s" if imported != 1 else ""} via {method}.'
     if skipped:
@@ -72,6 +80,13 @@ def import_zip(zip_path: str) -> None:
 def _import_with_manifest(extracted_dir, manifest_data, root, import_mgr, design):
     """Walk every entry in cutaway.json, build its plane, import the DXF."""
     unit = manifest_data.get('unit', 'mm')
+    # Normalize any unit we don't know to the same default as a MISSING unit.
+    # The fitter can write 'unitless' (its default display unit); letting an
+    # unknown string fall through to_cm()'s 1.0 fallback would silently read
+    # it as centimetres (Fusion's internal unit) and place every plane at 10x
+    # the correct depth for mm parts.
+    if unit not in ('mm', 'cm', 'm', 'in'):
+        unit = 'mm'
     skipped: list[str] = []
     imported = 0
 
@@ -89,6 +104,18 @@ def _import_with_manifest(extracted_dir, manifest_data, root, import_mgr, design
             skipped.append(f'{fname} — file referenced in manifest is missing from zip')
             continue
 
+        # Entries without placement fields can't be positioned in 3D. The
+        # fitter writes these (kind: 'imported') for DXFs the user loaded
+        # standalone — there was never a section plane to preserve. Without
+        # this check they'd fall through to the tilted path's default normal
+        # and skip with a misleading "no XY component" message.
+        if not entry.get('origin') or not entry.get('normal'):
+            skipped.append(
+                f'{fname} — no 3D placement in manifest '
+                '(DXF was loaded standalone, not cut from a mesh)'
+            )
+            continue
+
         # Split into per-step try/except so the skip message tells the user
         # exactly where it failed (plane construction vs. DXF import) — both
         # surfaces of Fusion's API throw the same generic
@@ -102,6 +129,16 @@ def _import_with_manifest(extracted_dir, manifest_data, root, import_mgr, design
             last = traceback.format_exc().strip().splitlines()[-1]
             skipped.append(f'{fname} — plane construction failed: {last}')
             continue
+
+        # Hide the construction plane — the user already has Fusion's three
+        # base planes visible, and N extra Cutaway planes covering every
+        # imported sketch quickly clutters the viewport. The plane still
+        # exists in the timeline so the sketch references resolve; user can
+        # toggle visibility back on per-plane if they need to see them.
+        try:
+            target_plane.isLightBulbOn = False
+        except Exception:
+            pass  # non-fatal; just leaves the plane visible.
 
         try:
             opts = import_mgr.createDXF2DImportOptions(full_path, target_plane)
@@ -162,6 +199,11 @@ def _import_with_filenames(extracted_dir, root, import_mgr, design):
             continue
         try:
             target_plane = plane_resolver.create_offset_plane(root, info)
+            # Hide the plane — see the comment in _import_with_manifest.
+            try:
+                target_plane.isLightBulbOn = False
+            except Exception:
+                pass
             opts = import_mgr.createDXF2DImportOptions(full_path, target_plane)
             import_mgr.importToTarget(opts, root)
             imported += 1

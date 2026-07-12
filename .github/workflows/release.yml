@@ -44,6 +44,7 @@ jobs:
             Cutaway.manifest \
             version.json \
             src \
+            resources \
             install \
             docs/INSTALL.md \
             README.md \
