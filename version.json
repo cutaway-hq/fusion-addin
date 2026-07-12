@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
-  "released": "2026-05-03",
-  "notes": "Initial scaffold — bulk 2D DXF zip importer."
+  "version": "0.2.0",
+  "released": "2026-07-12",
+  "notes": "Manifest-based import (face/3-point/derived/tilted sections), tilted-plane construction, unit normalization, palette + updater fixes."
 }

@@ -4,7 +4,62 @@ All notable changes to Cutaway. Format inspired by
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## v0.2.0 — 2026-07-12
+
+### Fixed
+- **The "Update available" button can now actually appear.** The update
+  check stored its result only in module memory, but `ui.start()` reads the
+  pending state immediately after firing the check (the network result
+  lands too late) and module memory dies with Fusion — so the button was
+  unreachable on any normal launch. The worker now also persists its result
+  to `.update_check.json` next to `version.json`; the next session's
+  `start()` reads that cache. The cache re-validates against the current
+  local version (and is deleted once the local version catches up), so a
+  stale prompt can't outlive the update.
+- Manifest entries without placement fields (the fitter's `kind:
+  "imported"` — DXFs loaded standalone, never cut from a mesh) are skipped
+  with an explicit "no 3D placement in manifest" message instead of falling
+  through to the tilted path's default normal and a misleading "normal has
+  no XY component" error.
+- Removed the explicit `tiltU`/`tiltV` check from
+  `planar_info_from_manifest` — a real tilt already shows in the normal,
+  and the check diverged from the web app in the sub-tolerance window
+  (tilt < ~0.06°): the app exported such sections as axis-aligned but the
+  add-in rejected them from both paths and skipped them entirely.
+- `install.bat` now clears `src/` and `resources/` before copying (matching
+  `install.sh`), so files renamed or deleted by a newer version don't
+  linger from the previous install on Windows.
+- The Update button's click handler got the same try/except + messageBox
+  wrapper as every other handler.
+- Unknown manifest `unit` values (e.g. the fitter's `"unitless"`) are now
+  normalized to `mm` — the same default as a missing unit — instead of
+  falling through the unit table as factor 1.0 (centimetres, Fusion's
+  internal unit), which silently placed every plane at 10× the correct
+  depth for mm parts. (The fitter side was also fixed to write a real unit
+  whenever one is known.)
+- Palette is now created hidden. Creating it visible broke the toolbar
+  toggle when the palette had to be recreated inside the click handler
+  (it appeared visible and the toggle immediately hid it — first click did
+  nothing, second worked).
+- Updater worker: the whole response handling now sits inside the
+  try/except, so an unexpected JSON shape (non-dict body) can't traceback
+  in the daemon thread ("failures are silent" contract).
+- Import temp dir switched to `mkdtemp` + best-effort `rmtree`: a Windows
+  cleanup failure (AV holding a handle on an extracted DXF) after a
+  successful import no longer replaces the summary dialog with a raw
+  traceback.
+- Bulk-export filenames now include the placement suffix (was just
+  `Section_5_refined.dxf`, now `Section_5__YZ_X87.49_dx-2.9_dy38.25_mm_refined.dxf`).
+- Placement-suffix regex no longer requires the unit to be immediately
+  followed by `.dxf` — now accepts `_refined`, `_2`, etc. between unit and
+  extension.
+- `ImportManager.importToTarget()` now receives the root Component instead
+  of the Design (Fusion required a Component target).
+- Helper sketch is hidden via `isVisible = False` (the property is
+  `isVisible` on Sketch; `isLightBulbOn` is for ConstructionPlane only and
+  silently throws when assigned to a Sketch).
+- `isComputeDeferred = True` on the helper sketch was preventing newly-added
+  sketch lines from rendering — removed.
 
 ### Added
 - `cutaway.json` manifest support — the importer now reads full section
@@ -39,20 +94,11 @@ All notable changes to Cutaway. Format inspired by
   noise from the cross-product) as "tilted", routing them to the
   setByAngle path with weird rotations. The three values must stay in
   lockstep.
-
-### Fixed
-- Bulk-export filenames now include the placement suffix (was just
-  `Section_5_refined.dxf`, now `Section_5__YZ_X87.49_dx-2.9_dy38.25_mm_refined.dxf`).
-- Placement-suffix regex no longer requires the unit to be immediately
-  followed by `.dxf` — now accepts `_refined`, `_2`, etc. between unit and
-  extension.
-- `ImportManager.importToTarget()` now receives the root Component instead
-  of the Design (Fusion required a Component target).
-- Helper sketch is hidden via `isVisible = False` (the property is
-  `isVisible` on Sketch; `isLightBulbOn` is for ConstructionPlane only and
-  silently throws when assigned to a Sketch).
-- `isComputeDeferred = True` on the helper sketch was preventing newly-added
-  sketch lines from rendering — removed.
+- Docs refreshed to match the code: `INSTALL.md` no longer describes the
+  pre-palette flow ("Cutaway: Import Sections" opening a file dialog
+  directly) and its troubleshooting section reflects the manifest-era
+  importer; `ARCHITECTURE.md` no longer claims tilted planes use
+  "three-point construction" (it's `setByAngle` + a shared helper sketch).
 
 ### Known limitations
 - The tilted-section path empirically matches Fusion's `setByAngle` sketch
