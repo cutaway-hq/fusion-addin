@@ -67,17 +67,26 @@ no need to uninstall first.)
 
 ## Uninstall
 
+Run the uninstall script — from the unzipped download, or (if you deleted
+the download) from the copy inside the installed folder itself:
+
 ### Windows
 
 ```cmd
 install\uninstall.bat
 ```
 
+Installed-folder copy:
+`%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\Cutaway\install\uninstall.bat`
+
 ### macOS
 
 ```bash
 ./install/uninstall.sh
 ```
+
+Installed-folder copy:
+`~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/Cutaway/install/uninstall.sh`
 
 Then restart Fusion to clear the add-in from the *Scripts and Add-Ins*
 list.

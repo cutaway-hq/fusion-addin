@@ -24,6 +24,11 @@ if exist "%TARGET%\resources" rmdir /S /Q "%TARGET%\resources"
 xcopy /E /I /Y /Q "%SOURCE%\src" "%TARGET%\src\" >nul
 xcopy /E /I /Y /Q "%SOURCE%\resources" "%TARGET%\resources\" >nul
 
+REM Also copy the install/uninstall scripts INTO the installed folder, so the
+REM user can uninstall later even after deleting the downloaded zip.
+if exist "%TARGET%\install" rmdir /S /Q "%TARGET%\install"
+xcopy /E /I /Y /Q "%SOURCE%\install" "%TARGET%\install\" >nul
+
 echo.
 echo Cutaway installed to:
 echo   %TARGET%

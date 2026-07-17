@@ -17,6 +17,10 @@ rm -rf "$TARGET/src"
 cp -R "$SOURCE/src"           "$TARGET/src"
 rm -rf "$TARGET/resources"
 cp -R "$SOURCE/resources"     "$TARGET/resources"
+# Also copy the install/uninstall scripts INTO the installed folder, so the
+# user can uninstall later even after deleting the downloaded zip.
+rm -rf "$TARGET/install"
+cp -R "$SOURCE/install"       "$TARGET/install"
 
 cat <<MSG
 

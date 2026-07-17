@@ -1,5 +1,5 @@
 {
-  "version": "0.2.1",
+  "version": "0.2.2",
   "released": "2026-07-12",
-  "notes": "Fix: palette showed blank on first open until resized."
+  "notes": "Uninstaller is now copied into the installed folder and can delete it safely."
 }

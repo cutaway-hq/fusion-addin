@@ -4,6 +4,17 @@ All notable changes to Cutaway. Format inspired by
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org).
 
+## v0.2.2 — 2026-07-12
+
+### Fixed
+- The uninstaller now survives the user deleting the downloaded zip:
+  `install.bat` / `install.sh` copy the `install/` scripts INTO the
+  installed add-in folder, and `INSTALL.md` documents that location.
+  `uninstall.bat` also handles being run from inside the folder it deletes
+  (hands the removal to a detached `%TEMP%` helper — a batch script can't
+  delete its own folder directly) and steps out of the target directory
+  first so an open working directory can't block `rmdir`.
+
 ## v0.2.1 — 2026-07-12
 
 ### Fixed
