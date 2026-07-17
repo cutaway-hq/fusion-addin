@@ -71,6 +71,19 @@ class _LaunchCommandCreated(adsk.core.CommandCreatedEventHandler):
                 palette = _create_palette(ui)
             # Toggle: showing → hide; hidden → show.
             palette.isVisible = not palette.isVisible
+            if palette.isVisible:
+                # The HTML loads while the palette is hidden (created at
+                # start()), and the embedded Chromium skips painting hidden
+                # views — so the first reveal shows a blank panel until
+                # something forces a layout pass (users found minimize/
+                # restore "fixed" it). A 1px size nudge forces that pass
+                # invisibly. Best-effort: a failure here must not break
+                # the toggle.
+                try:
+                    palette.height = palette.height + 1
+                    palette.height = palette.height - 1
+                except Exception:
+                    pass
         except Exception:
             adsk.core.Application.get().userInterface.messageBox(
                 'Cutaway failed to open the panel:\n{}'.format(traceback.format_exc())

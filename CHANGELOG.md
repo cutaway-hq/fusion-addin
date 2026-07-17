@@ -4,6 +4,17 @@ All notable changes to Cutaway. Format inspired by
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org).
 
+## v0.2.1 — 2026-07-12
+
+### Fixed
+- Palette no longer shows blank on its first open. The HTML loads while the
+  palette is hidden (created eagerly at `start()`), and the embedded
+  Chromium skips painting hidden views — the first reveal stayed unpainted
+  until a resize (minimize/restore "fixed" it). The toggle handler now
+  nudges the palette height by 1px right after showing it, forcing the
+  missing layout pass invisibly. Found by Davud in the first production
+  install test.
+
 ## v0.2.0 — 2026-07-12
 
 ### Fixed

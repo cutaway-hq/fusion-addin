@@ -1,5 +1,5 @@
 {
-  "version": "0.2.0",
+  "version": "0.2.1",
   "released": "2026-07-12",
-  "notes": "Manifest-based import (face/3-point/derived/tilted sections), tilted-plane construction, unit normalization, palette + updater fixes."
+  "notes": "Fix: palette showed blank on first open until resized."
 }
