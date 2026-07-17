@@ -1,5 +1,5 @@
 {
-  "version": "0.2.2",
+  "version": "0.2.3",
   "released": "2026-07-12",
-  "notes": "Uninstaller is now copied into the installed folder and can delete it safely."
+  "notes": "Imported sketches are named after their sections (was: layer name '0', '0 (1)', ...)."
 }

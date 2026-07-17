@@ -4,6 +4,18 @@ All notable changes to Cutaway. Format inspired by
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org).
 
+## v0.2.3 — 2026-07-12
+
+### Fixed
+- Imported sketches now carry the section's real name ("Top", "Mid", …)
+  instead of "0", "0 (1)", "0 (2)"… Fusion names DXF-imported sketches
+  after the DXF LAYER (our geometry lives on layer "0") and the importer
+  never renamed them. Both import paths now rename the fresh sketches
+  right after `importToTarget` — the manifest path uses the manifest
+  entry's `name`, the legacy path uses the filename prefix before `__`.
+  Multi-layer DXFs keep the layer as a suffix ("Top - REFERENCE").
+  Found by Davud in the first production import test.
+
 ## v0.2.2 — 2026-07-12
 
 ### Fixed

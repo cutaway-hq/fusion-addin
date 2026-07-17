@@ -142,13 +142,50 @@ def _import_with_manifest(extracted_dir, manifest_data, root, import_mgr, design
 
         try:
             opts = import_mgr.createDXF2DImportOptions(full_path, target_plane)
+            n_before = root.sketches.count
             import_mgr.importToTarget(opts, root)
             imported += 1
+            _rename_new_sketches(root, n_before, entry.get('name') or _name_from_filename(fname))
         except Exception:
             last = traceback.format_exc().strip().splitlines()[-1]
             skipped.append(f'{fname} — DXF import failed: {last}')
 
     return imported, skipped
+
+
+def _name_from_filename(fname: str) -> str:
+    """'Top__XY_Z5_dx0_dy0_mm.dxf' → 'Top'; anything else → the stem."""
+    base = os.path.splitext(os.path.basename(fname))[0]
+    return base.split('__')[0] or base
+
+
+def _rename_new_sketches(component, n_before, section_name):
+    """Give freshly imported sketches the section's real name.
+
+    Fusion names a DXF-imported sketch after the DXF LAYER it came from —
+    our geometry lives on layer "0", so every section imported as "0",
+    "0 (1)", "0 (2)"… One DXF can produce several sketches (one per layer,
+    e.g. REFERENCE entities); the sole sketch gets the plain name, extras
+    keep their layer name as a suffix. Best-effort per sketch: a naming
+    hiccup (e.g. duplicate-name rules) must never fail an import that
+    already succeeded.
+    """
+    if not section_name:
+        return
+    try:
+        sketches = component.sketches
+        new_count = sketches.count - n_before
+        for i in range(n_before, sketches.count):
+            sk = sketches.item(i)
+            try:
+                if new_count == 1:
+                    sk.name = section_name
+                else:
+                    sk.name = '{} - {}'.format(section_name, sk.name)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 def _build_plane_from_manifest(component, entry, unit, helper_sketch_provider):
@@ -205,8 +242,10 @@ def _import_with_filenames(extracted_dir, root, import_mgr, design):
             except Exception:
                 pass
             opts = import_mgr.createDXF2DImportOptions(full_path, target_plane)
+            n_before = root.sketches.count
             import_mgr.importToTarget(opts, root)
             imported += 1
+            _rename_new_sketches(root, n_before, _name_from_filename(fname))
         except Exception:
             last = traceback.format_exc().strip().splitlines()[-1]
             skipped.append(f'{fname} — {last}')
