@@ -92,6 +92,7 @@ actually trusts.
 | Per-file failures don't kill the batch; failures are listed in the summary | A bad DXF shouldn't waste the rest of a 50-section import |
 | Each section is a separate sketch, no auto-grouping | Fusion's API doesn't merge sketches; matches user mental model |
 | File-picker only, no "watch this folder" mode | Simplest possible v1, matches the web app's "Export zip" UX |
+| The Palette is created when Fusion's `startupCompleted` event fires (at once on a manual Run), never in `run()` while Fusion is still starting | Since Fusion's October 2026 update, docking a palette during startup raises `InternalValidationError : pArea`; v0.2.3 failed to start for everyone with Run on Startup, while a manual Run worked. Test changes to `start()` by restarting Fusion — Stop/Run never takes the startup path |
 | Toolbar button opens a Cutaway-branded **HTML Palette**, not the file picker directly | Branded surface for the import flow + space to grow (e.g., a future "Publish to Cutaway" marketplace button lives here too). Costs the user one extra click; pays for itself by giving Cutaway its own identity in Fusion and a place to land future features without re-architecting the UI each time. |
 
 ## Migration history
@@ -132,8 +133,8 @@ actually trusts.
 See `docs/RELEASE.md` (and the monorepo root's `DEPLOYMENT.md` §3 for the
 Davud-guided version incl. the git-auth gotcha). TL;DR: bump version in two
 files + CHANGELOG, tag `vX.Y.Z`, push tag, CI builds and publishes.
-Current shipped version: **v0.2.0** (2026-07-12; the public repo was
-recreated that day — the original May repo had been deleted). The download
+Current shipped version: **v0.2.4** (2026-10-29; the public repo was
+recreated on 2026-07-12 — the original May repo had been deleted). The download
 is linked from cutawayhq.com (hero + tutorial) and both web apps.
 
 ## Related projects

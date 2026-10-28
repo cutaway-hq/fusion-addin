@@ -33,7 +33,10 @@ fusion-addin/
    - Registers the `Cutaway` toolbar button in the MODIFY panel, with the
      icon from `resources/cutaway/`.
    - Registers (but does not show) the Cutaway HTML Palette, sourcing
-     `resources/palette/index.html`.
+     `resources/palette/index.html` — at once on a manual Run, but at
+     startup only when Fusion's `startupCompleted` event fires: a palette
+     made while Fusion is still starting can't be docked
+     (`FUSION_API_NOTES.md`, "Startup").
    - Wires the toolbar button to toggle the Palette open/closed.
    - Registers an HTMLEvent handler on the Palette so its JS can call into
      Python (e.g., the "Import sections" button posts an `import` action).

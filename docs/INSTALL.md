@@ -93,6 +93,12 @@ list.
 
 ## Troubleshooting
 
+- **"Cutaway failed to start" with `InternalValidationError : pArea`
+  every time Fusion opens** (while a manual Run works) — Fusion's October
+  2026 update broke v0.2.3 and older at startup. Install v0.2.4 or newer
+  from the [latest release](https://github.com/cutaway-hq/fusion-addin/releases/latest).
+  The Update button can't appear in a version that fails to start, so
+  download it directly.
 - **"Cutaway: please open a Fusion design before importing"** — open or
   create a design first; the importer needs a target document.
 - **"no .dxf files found in the zip"** — the zip might be the `.svg`

@@ -58,6 +58,19 @@ Things that bit us during development. Read before changing
   sketches. That's fine for our use case (each section = its own
   reference).
 
+## Startup
+
+- With **Run on Startup**, Fusion calls `run()` while it is still building
+  its window. Since the October 2026 update (build 2706.1.14), setting
+  `palette.dockingState` then raises `RuntimeError: 2 :
+  InternalValidationError : pArea`, though the same code works from a
+  manual Run. In `run()`, only add buttons and connect events (Autodesk's
+  own advice); create palettes when `app.isStartupComplete` is true, or
+  in a handler of `app.startupCompleted`. `ui.start()` does that.
+- **Stop/Run in Scripts and Add-Ins never takes the startup path**, so it
+  can't catch this kind of bug: restart Fusion to test a change to
+  `start()`.
+
 ## Event handlers and GC
 
 - Fusion's Python wrapper uses weak references for event handlers. If you

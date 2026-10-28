@@ -4,6 +4,22 @@ All notable changes to Cutaway. Format inspired by
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org).
 
+## v0.2.4 — 2026-10-29
+
+### Fixed
+- Cutaway starts again when Fusion loads it at startup. Since Fusion's
+  October 2026 update (build 2706.1.14), "Run on Startup" add-ins are run
+  while Fusion is still building its window, and giving a palette a
+  docking state then fails with `RuntimeError: 2 : InternalValidationError
+  : pArea`: a "Cutaway failed to start" dialog at every launch and no
+  Cutaway button, while a manual Run from Scripts and Add-Ins (Fusion
+  already up) still worked. `start()` now registers the button straight
+  away and creates the Palette once Fusion's `startupCompleted` event
+  fires (at once on a manual Run). Floating the palette is also
+  best-effort now: if Fusion ever refuses it again, the panel opens
+  docked instead of the add-in failing to start. Reported by users the
+  day after the update; reproduced on Windows.
+
 ## v0.2.3 — 2026-07-12
 
 ### Fixed

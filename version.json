@@ -1,5 +1,5 @@
 {
-  "version": "0.2.3",
-  "released": "2026-07-12",
-  "notes": "Imported sketches are named after their sections (was: layer name '0', '0 (1)', ...)."
+  "version": "0.2.4",
+  "released": "2026-10-29",
+  "notes": "Starts again when Fusion loads it at startup (Fusion's October 2026 update broke Run on Startup)."
 }

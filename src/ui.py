@@ -73,12 +73,12 @@ class _LaunchCommandCreated(adsk.core.CommandCreatedEventHandler):
             palette.isVisible = not palette.isVisible
             if palette.isVisible:
                 # The HTML loads while the palette is hidden (created at
-                # start()), and the embedded Chromium skips painting hidden
-                # views — so the first reveal shows a blank panel until
-                # something forces a layout pass (users found minimize/
-                # restore "fixed" it). A 1px size nudge forces that pass
-                # invisibly. Best-effort: a failure here must not break
-                # the toggle.
+                # start(), or once Fusion has finished starting), and the
+                # embedded Chromium skips painting hidden views — so the
+                # first reveal shows a blank panel until something forces
+                # a layout pass (users found minimize/restore "fixed" it).
+                # A 1px size nudge forces that pass invisibly.
+                # Best-effort: a failure here must not break the toggle.
                 try:
                     palette.height = palette.height + 1
                     palette.height = palette.height - 1
@@ -194,7 +194,13 @@ def _create_palette(ui):
     # forced to full available height, which leaves the compact UI
     # swimming in empty space. Floating respects our initial 400×400
     # dimensions. User can drag it onto an edge to dock it themselves.
-    palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateFloating
+    # Best-effort: Fusion refuses it while it is still starting (see
+    # start()), and a palette that can't float still works docked — a
+    # failure here must not cost the add-in its button.
+    try:
+        palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateFloating
+    except Exception:
+        pass
 
     html_handler = _PaletteHTMLEvent()
     palette.incomingFromHTML.add(html_handler)
@@ -223,16 +229,45 @@ def _register_button(ui, cmd_id, cmd_name, tooltip, handler, icon_folder=None):
     return cmd_def
 
 
-def start():
-    app = adsk.core.Application.get()
-    ui = app.userInterface
+class _StartupCompleted(adsk.core.ApplicationEventHandler):
+    """Fusion has finished starting → create the Palette (see start())."""
 
-    # Create the Palette eagerly but hide it until the user clicks the
-    # toolbar button. Eager creation means the first click is instant.
+    def notify(self, args):
+        try:
+            _prepare_palette(adsk.core.Application.get().userInterface)
+        except Exception:
+            adsk.core.Application.get().userInterface.messageBox(
+                'Cutaway failed to create its panel:\n{}'.format(traceback.format_exc())
+            )
+
+
+def _prepare_palette(ui):
+    """Create the Palette eagerly but hide it until the user clicks the
+    toolbar button. Eager creation means the first click is instant."""
     palette = ui.palettes.itemById(PALETTE_ID)
     if not palette:
         palette = _create_palette(ui)
     palette.isVisible = False
+
+
+def start():
+    app = adsk.core.Application.get()
+    ui = app.userInterface
+
+    # The Palette waits until Fusion has finished starting. With "Run on
+    # Startup", Fusion calls run() while it is still building its window,
+    # and since its October 2026 update (build 2706.1.14) a palette can't
+    # be docked then: "InternalValidationError : pArea", "Cutaway failed
+    # to start", no button — while a manual Run (Fusion already up)
+    # worked. Autodesk's advice is the same: in run(), only add buttons
+    # and connect events. Test this path by restarting Fusion; Stop/Run
+    # never takes it.
+    if app.isStartupComplete:
+        _prepare_palette(ui)
+    else:
+        handler = _StartupCompleted()
+        app.startupCompleted.add(handler)
+        _handlers.append(handler)
 
     _register_button(
         ui,
