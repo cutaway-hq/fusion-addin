@@ -39,7 +39,7 @@ jobs:
       - name: Build add-in zip
         run: |
           mkdir -p dist
-          zip -r "dist/cutaway-${{ steps.ver.outputs.version }}.zip" \
+          git archive --format=zip --prefix=Cutaway/ --output="dist/cutaway-${{ steps.ver.outputs.version }}.zip" HEAD -- \
             Cutaway.py \
             Cutaway.manifest \
             version.json \
