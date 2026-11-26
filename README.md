@@ -9,7 +9,7 @@ manual offset typing.
 
 See [docs/INSTALL.md](docs/INSTALL.md). TL;DR: download the latest
 `cutaway-X.Y.Z.zip` from
-[Releases](https://github.com/cutaway-hq/fusion-addin/releases), unzip,
+[Releases](https://github.com/cutaway-hq/fusion-addin/releases), unzip, open the `Cutaway/` folder,
 run `install/install.bat` (Windows) or `install/install.sh` (macOS), then
 enable **Cutaway** in Fusion's *Scripts and Add-Ins* dialog.
 

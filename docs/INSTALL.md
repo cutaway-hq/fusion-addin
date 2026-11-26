@@ -15,7 +15,7 @@ For end users. If you're a developer working on the add-in itself, see
 
 1. Download the latest `cutaway-X.Y.Z.zip` from the
    [Releases page](https://github.com/cutaway-hq/fusion-addin/releases).
-2. Unzip it anywhere (Downloads is fine).
+2. Open the `Cutaway/` folder inside the extracted ZIP (Downloads is fine).
 3. Double-click `install/install.bat`. A console window appears, copies the
    files, and waits for you to press a key.
 
@@ -23,7 +23,7 @@ For end users. If you're a developer working on the add-in itself, see
 
 1. Download the latest `cutaway-X.Y.Z.zip` from the
    [Releases page](https://github.com/cutaway-hq/fusion-addin/releases).
-2. Unzip it anywhere.
+2. Open the `Cutaway/` folder inside the extracted ZIP.
 3. Open Terminal in the unzipped folder and run:
 
    ```bash

@@ -74,7 +74,7 @@ You can watch it run under the **Actions** tab on GitHub.
 ## 6. Verify
 
 - Open the release page on GitHub. Confirm `cutaway-0.2.0.zip` is attached.
-- Download the zip on a clean machine; run `install/install.bat` (or `.sh`).
+- Download the zip on a clean machine; open the extracted `Cutaway/` folder and run `install/install.bat` (or `.sh`).
 - Open Fusion, run the add-in, confirm the importer button still appears
   and a known-good Cutaway zip imports correctly.
 
